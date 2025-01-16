@@ -1,0 +1,43 @@
+Connect-AzAccount -UseDeviceAuthentication -Tenant 271a79f4-652f-4dbe-b588-19953b85a0ef
+az login --tenant 271a79f4-652f-4dbe-b588-19953b85a0ef
+
+Ex 1:
+az group create --name rg-techexcelai --location swedencentral
+
+Ex 2:
+docker build . -t contosohotel:dev
+az acr create --resource-group rg-techexcelai --name fwtechexcelai --sku Basic --location swedencentral
+az acr login --name fwtechexcelai
+docker tag contosohotel:dev fwtechexcelai.azurecr.io/contosohotel:dev
+docker push fwtechexcelai.azurecr.io/contosohotel:dev
+./manageIac.ps1 -iacAction "create" -deploy "postgresql" -location "Sweden Central" -passwd "<password>" -rgname "rg-techexcelai"
+
+docker run -p 8000:8000 --env POSTGRES_CONNECTION_STRING='host=tqoicj6kmeriy.postgres.database.azure.com;port=5432;database=pycontosohotel;user=contosoadmin;password=<password>;' fwtechexcelai.azurecr.io/contosohotel:dev 
+
+Ex 3:
+cd /workspaces/TechExcelModApps/ModernizedContosoHotel/FrontEnd
+docker build . -t fwtechexcelai.azurecr.io/contosohotel:frontend
+docker push fwtechexcelai.azurecr.io/contosohotel:frontend
+
+cd /workspaces/TechExcelModApps/ModernizedContosoHotel/BackEnd
+docker build . -t fwtechexcelai.azurecr.io/contosohotel:backend
+docker push fwtechexcelai.azurecr.io/contosohotel:backend
+
+az containerapp env create --name fwcontosohotel --resource-group rg-techexcelai --location swedencentral 
+
+
+az containerapp create -n fwcontosohotelapi -g rg-techexcelai --image fwtechexcelai.azurecr.io/contosohotel:backend --environment fwcontosohotel --ingress external --target-port 8000  --query properties.configuration.ingress.fqdn --env-vars POSTGRES_CONNECTION_STRING='host=tqoicj6kmeriy.postgres.database.azure.com;port=5432;database=pycontosohotel;user=contosoadmin;password=<password>;' --registry-server fwtechexcelai.azurecr.io --registry-username contosohotel --registry-password <regpassword>
+
+https://fwcontosohotelapi.orangerock-4540ec5b.swedencentral.azurecontainerapps.io/
+
+az containerapp create -n fwcontosohotelfrontend -g rg-techexcelai --image fwtechexcelai.azurecr.io/contosohotel:frontend --environment fwcontosohotel --ingress external --target-port 8000  --query properties.configuration.ingress.fqdn --env-vars API_BASEURL='https://fwcontosohotelapi.orangerock-4540ec5b.swedencentral.azurecontainerapps.io' --registry-server fwtechexcelai.azurecr.io --registry-username contosohotel --registry-password <regpassword>
+
+           
+https://fwcontosohotelfrontend.orangerock-4540ec5b.swedencentral.azurecontainerapps.io/          
+
+testing
+docker run -p 8000:8000 --env API_BASEURL='https://fwcontosohotelapi.orangerock-4540ec5b.swedencentral.azurecontainerapps.io' fwtechexcelai.azurecr.io/contosohotel:frontend
+
+cors
+PUT method
+allowed origins fwcontosohotelfrontend.orangerock-4540ec5b.swedencentral.azurecontainerapps.io
