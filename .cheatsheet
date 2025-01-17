@@ -41,3 +41,36 @@ docker run -p 8000:8000 --env API_BASEURL='https://fwcontosohotelapi.orangerock-
 cors
 PUT method
 allowed origins fwcontosohotelfrontend.orangerock-4540ec5b.swedencentral.azurecontainerapps.io
+
+CREATE ROLE hotel_reader WITH LOGIN NOSUPERUSER INHERIT CREATEDB NOCREATEROLE NOREPLICATION PASSWORD '<Password>';
+GRANT CONNECT ON DATABASE pycontosohotel TO hotel_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO hotel_reader;
+GRANT EXECUTE ON FUNCTION getroomsusagewithintimespan TO hotel_reader;
+
+public             | hotels                   | contosoadmin |            | t          | f        | t           | f
+public             | bookings                 | contosoadmin |            | t          | f        | t           | f
+public             | visitors                 | contosoadmin |     
+
+PGHOST="tqoicj6kmeriy.postgres.database.azure.com"
+PGPORT="5432"
+PGUSER="hotel_reader"
+PGDATABASE="pycontosohotel"
+PGPASSWORD="<pgpassword>"
+CONTOSO_ACR_CREDENTIAL="<regpassword>"
+ACR_NAME="fwtechexcelai"
+AZURE_AI_SEARCH_ENDPOINT="https://fwcontosohotel.search.windows.net/"
+AZURE_AI_SEARCH_API_KEY="<searchkey>"
+AZURE_OPENAI_ENDPOINT="https://fwconstosohotel.openai.azure.com/"
+AZURE_OPENAI_API_KEY="<aoaikey>"
+RG_NAME="rg-techexcelai"
+az containerapp create --name "chatbot" --resource-group "$RG_NAME" --environment "fwcontosohotel" \
+--image "$ACR_NAME.azurecr.io/chatbot:v1.0.0" --ingress external --target-port 8080 --transport http \
+--registry-server "$ACR_NAME.azurecr.io" --registry-username contosohotel --registry-password "$CONTOSO_ACR_CREDENTIAL" \
+--secrets "searchkey=$AZURE_AI_SEARCH_API_KEY" "openaikey=$AZURE_OPENAI_API_KEY" "pgpassword=$PGPASSWORD" \
+--env-vars "AZURE_AI_SEARCH_ENDPOINT=$AZURE_AI_SEARCH_ENDPOINT" "AZURE_AI_SEARCH_API_KEY=$AZURE_AI_SEARCH_API_KEY" \
+"AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT" "AZURE_OPENAI_API_KEY=$AZURE_OPENAI_API_KEY" \
+"PGHOST=$PGHOST" "PGPORT=$PGPORT" "PGUSER=$PGUSER" "PGDATABASE=$PGDATABASE" "PGPASSWORD=$PGPASSWORD"
+
+CHATBOT_URL="https://chatbot.orangerock-4540ec5b.swedencentral.azurecontainerapps.io"
+az containerapp update --name "fwcontosohotelfrontend" --resource-group "$RG_NAME" --set-env-vars "CHATBOT_BASEURL=$CHATBOT_URL"
+az containerapp update --name "fwcontosohotelapi" --resource-group "$RG_NAME" --set-env-vars "CHATBOT_BASEURL=$CHATBOT_URL"
