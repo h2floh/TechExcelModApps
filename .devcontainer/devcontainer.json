@@ -17,7 +17,7 @@
 			"version": "latest",
 			"dockerDashComposeVersion": "none"
 		},
-		"ghcr.io/devcontainers/features/powershell:1": {
+		"ghcr.io/devcontainers/features/powershell:2": {
 			"version": "latest"
 		},
 		"ghcr.io/azure/azure-dev/azd:0": {
